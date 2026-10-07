@@ -1,0 +1,57 @@
+ARAGUAIA BEBIDAS — VERSÃO REVISADA
+
+ABRIR
+Use Go Live no index.html da pasta principal para testar login/cadastro.
+A loja fica em araguaia-loja-v1/index.html.
+Mantenha a estrutura de pastas ao extrair o ZIP.
+
+VENDA
+Somente fardos fechados. Preço e estoque do administrador são por fardo.
+Unidades por fardo é obrigatório e o volume se refere a cada bebida.
+O valor por unidade aparece apenas como referência, sem venda avulsa.
+O estoque não é reservado nem baixado: o carrinho ainda é uma prévia local.
+Os produtos e preços iniciais são exemplos; substitua-os pelos dados reais.
+
+SUPORTE
+WhatsApp: (62) 98445-2600.
+Links de suporte abrem o WhatsApp. O cliente decide se deseja enviar a mensagem.
+A revisão do carrinho inclui um resumo para conferir estoque, preços e entrega.
+Nenhuma mensagem é enviada automaticamente.
+
+PAGAMENTO
+Pix informado: 6298610-9581.
+Favorecido informado: Araguaia Atacarejo Bebidas.
+A chave foi incluída conforme fornecida e não foi verificada em um banco.
+Há botão para copiar a chave; não há cobrança ou confirmação automática.
+O preço final, estoque e frete devem ser confirmados pelo atendimento.
+Não use os valores ilustrativos como uma cobrança real.
+A opção de carteira digital aguarda a definição entre Google Pay e Google Play.
+Para Google Pay real são necessários provedor compatível, backend e liberação
+para produção. Não há um botão de pagamento falso nesta versão.
+
+ARQUIVOS DA LOJA
+catalogo.js: única fonte dos seis produtos de exemplo.
+script.js: catálogo local, administrador, carrinho, revisão e WhatsApp.
+style.css: apresentação responsiva.
+index.html: estrutura e formulários.
+assets/: logo e imagens ilustrativas.
+
+ACESSO E DADOS
+Login/cadastro/recuperação continuam sem autenticação real e sem envio de e-mail.
+O administrador é de demonstração e não está protegido por senha.
+Catálogo e carrinho são salvos neste navegador/endereço, não em servidor.
+A versão v3 converte o catálogo v2: estoque de unidades passa a fardos inteiros.
+Produtos antigos sem embalagem definida ficam ocultos para revisão no admin.
+O armazenamento v2 é mantido. O antigo carrinho por unidades não é importado.
+Fotos são reduzidas antes de salvar; armazenamento local continua limitado.
+
+ANTES DE PUBLICAR PARA VENDAS REAIS
+Conectar autenticação e permissões de administrador no servidor.
+Conectar banco de dados, estoque compartilhado e armazenamento de imagens.
+Definir área de atendimento, frete, retirada e catálogo/preços reais.
+Integrar pedidos e pagamento com confirmação no servidor.
+
+REFERÊNCIAS DE ORGANIZAÇÃO
+https://www.atacadao.com.br/
+https://www.assai.com.br/bebidas
+https://developers.google.com/pay/api/web/overview
