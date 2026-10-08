@@ -9,7 +9,7 @@ VENDA
 Somente fardos fechados. Preço e estoque do administrador são por fardo.
 Unidades por fardo é obrigatório e o volume se refere a cada bebida.
 O valor por unidade aparece apenas como referência, sem venda avulsa.
-O estoque não é reservado nem baixado: o carrinho ainda é uma prévia local.
+O carrinho não reserva estoque. Finalizar o pedido baixa os fardos no navegador.
 Os produtos e preços iniciais são exemplos; substitua-os pelos dados reais.
 
 SUPORTE
@@ -39,7 +39,7 @@ assets/: logo e imagens ilustrativas.
 ACESSO E DADOS
 Login/cadastro/recuperação continuam sem autenticação real e sem envio de e-mail.
 O administrador é de demonstração e não está protegido por senha.
-Catálogo e carrinho são salvos neste navegador/endereço, não em servidor.
+Catálogo, pedidos e carrinho são salvos neste navegador/endereço, não em servidor.
 A versão v3 converte o catálogo v2: estoque de unidades passa a fardos inteiros.
 Produtos antigos sem embalagem definida ficam ocultos para revisão no admin.
 O armazenamento v2 é mantido. O antigo carrinho por unidades não é importado.
@@ -55,3 +55,8 @@ REFERÊNCIAS DE ORGANIZAÇÃO
 https://www.atacadao.com.br/
 https://www.assai.com.br/bebidas
 https://developers.google.com/pay/api/web/overview
+
+PEDIDOS E PDF
+Consulte PEDIDOS.md na pasta principal para o funcionamento da finalização.
+Pedidos ficam aguardando pagamento e geram via em PDF; não é nota fiscal.
+O estoque local baixa na finalização. A baixa não é compartilhada entre clientes.

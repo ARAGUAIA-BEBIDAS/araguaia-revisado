@@ -14,3 +14,7 @@
 Verificação realizada: cadastro de fardos, preço por fardo, limite de estoque, persistência após recarregar, conversão do catálogo anterior, totais, cópia de chave, número/conteúdo do link de WhatsApp, ausência de recursos quebrados e apresentação no computador/celular.
 
 Pendências para produção: autenticação e permissões reais, banco compartilhado, pedidos, estoque central, entrega/frete, confirmação bancária e definição/integração da carteira digital. Os preços e as imagens do catálogo ainda são ilustrativos.
+
+
+## Atualização de pedidos
+Adicionados finalização sem pagamento, baixa local de estoque e via em PDF. Consulte PEDIDOS.md para os limites e o fluxo.

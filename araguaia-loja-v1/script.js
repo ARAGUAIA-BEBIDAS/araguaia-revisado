@@ -2,7 +2,8 @@
 const $ = s => document.querySelector(s);
 const money = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const KEY='araguaia.catalog.v3', CART_KEY='araguaia.cart.v3';
+const KEY='araguaia.catalog.v3', CART_KEY='araguaia.cart.v3', STATE_KEY='araguaia.store.v4';
+let orders=[],storageBroken=false;
 const SUPPORT='5562984452600', PIX_KEY='6298610-9581';
 const categories=['Cervejas','Refrigerantes','Águas','Energéticos','Sucos','Outros'];
 const seeds=window.ARAGUAIA_CATALOGO;
@@ -24,9 +25,39 @@ try{if(localStorage.getItem(KEY)===null){const old=JSON.parse(localStorage.getIt
   const migrated=old.map(p=>{const qty=Number.isInteger(p.packQty)&&p.packQty>=2?p.packQty:0;return {...p,price:qty&&p.packPrice>0?p.packPrice:p.price,stock:qty?Math.floor(p.stock/qty):0,packQty:qty,active:qty?!!p.active:false};}).map(({packPrice,...p})=>p);
   if(migrated.every(valid)&&new Set(migrated.map(p=>p.id)).size===migrated.length){const data=JSON.stringify(migrated);localStorage.setItem(KEY,data);products=migrated;notify('Catálogo convertido para fardos. Produtos sem embalagem definida ficam ocultos para revisão.');}
 }}}catch{notify('Não foi possível converter o catálogo anterior. Ele foi preservado no navegador.');}
-let storageSnapshot;try{storageSnapshot=localStorage.getItem(KEY);}catch{storageSnapshot=null;}
-function commit(next){try{if(localStorage.getItem(KEY)!==storageSnapshot){notify('Catálogo alterado em outra aba. Recarregue para evitar perder alterações.');return false;}const json=JSON.stringify(next);localStorage.setItem(KEY,json);storageSnapshot=json;products=next;return true;}catch{return false;}}
-function saveCart(){try{localStorage.setItem(CART_KEY,JSON.stringify(cart));}catch{notify('Carrinho atualizado nesta página, mas não foi possível salvá-lo no navegador.');}}
+// Catálogo, pedidos e carrinho são gravados juntos: uma falha não deixa meia operação salva.
+function validOrder(o){return o&&typeof o.id==='string'&&/^ARG-[A-Z0-9-]+$/.test(o.id)&&o.id.length<80
+  &&typeof o.createdAt==='string'&&Number.isFinite(Date.parse(o.createdAt))&&o.paymentStatus==='pending'
+  &&o.customer&&typeof o.customer.name==='string'&&o.customer.name.length>0&&o.customer.name.length<=100
+  &&typeof o.customer.phone==='string'&&/^\d{10,11}$/.test(o.customer.phone)
+  &&typeof o.customer.notes==='string'&&o.customer.notes.length<=500
+  &&Array.isArray(o.items)&&o.items.length>0&&o.items.length<=500&&new Set(o.items.map(i=>i.id)).size===o.items.length
+  &&o.items.every(i=>i&&typeof i.id==='string'&&i.id.length<100&&typeof i.name==='string'&&i.name.length<=80
+    &&typeof i.size==='string'&&i.size.length<=40&&Number.isInteger(i.packQty)&&i.packQty>=2&&i.packQty<=1000
+    &&Number.isInteger(i.qty)&&i.qty>0&&i.qty<=999999&&Number.isInteger(i.unitCents)&&i.unitCents>0&&i.unitCents<=9999900)
+  &&Number.isSafeInteger(o.totalCents)&&o.totalCents===o.items.reduce((n,i)=>n+i.unitCents*i.qty,0);}
+let storageSnapshot=null;
+try{
+  storageSnapshot=localStorage.getItem(STATE_KEY);
+  if(storageSnapshot!==null){const state=JSON.parse(storageSnapshot);
+    if(state.version!==4||!Array.isArray(state.products)||state.products.length>500||!state.products.every(valid)
+      ||new Set(state.products.map(p=>p.id)).size!==state.products.length||!Array.isArray(state.orders)||state.orders.length>1000
+      ||!state.orders.every(validOrder)||new Set(state.orders.map(o=>o.id)).size!==state.orders.length
+      ||!Array.isArray(state.cart)||!state.cart.every(l=>l&&typeof l.id==='string'&&l.type==='pack'&&Number.isInteger(l.qty)&&l.qty>0)
+      ||state.cart.length>500||new Set(state.cart.map(l=>l.id)).size!==state.cart.length)throw Error();
+    products=state.products;orders=state.orders;cart=state.cart;
+  }
+}catch{storageBroken=true;notify('Dados locais indisponíveis. Não será possível salvar ou finalizar até recuperar o armazenamento.');}
+let savedCart=structuredClone(cart);
+function commit(next,nextOrders=orders,nextCart=cart){
+  try{
+    if(storageBroken)throw Error();
+    if(localStorage.getItem(STATE_KEY)!==storageSnapshot){notify('Dados alterados em outra aba. Recarregue antes de continuar.');return false;}
+    const json=JSON.stringify({version:4,products:next,orders:nextOrders,cart:nextCart});
+    localStorage.setItem(STATE_KEY,json);storageSnapshot=json;products=next;orders=nextOrders;cart=nextCart;savedCart=structuredClone(cart);return true;
+  }catch{return false;}
+}
+function saveCart(){if(commit(products))return true;cart=structuredClone(savedCart);notify('Não foi possível salvar. Confira o armazenamento e recarregue se houver outra aba aberta.');return false;}
 const get=id=>products.find(p=>p.id===id);
 function reserved(id){return cart.filter(l=>l.id===id).reduce((n,l)=>n+l.qty,0);}
 function reconcile(){const used=new Map();cart=cart.filter(l=>{const p=get(l.id);if(!p||!p.active||l.type==='pack'&&!p.packQty)return false;const q=1;l.qty=Math.min(l.qty,Math.floor(Math.max(0,p.stock-(used.get(p.id)||0))/q));used.set(p.id,(used.get(p.id)||0)+q*l.qty);return l.qty>0;});}
@@ -58,7 +89,7 @@ for(const cat of categories)if(!document.querySelector(`.side-categories [data-c
 document.querySelectorAll('[data-category]:not(article)').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.category;renderStore();$('#ofertas').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});}));
 $('#search').addEventListener('input',renderStore);$('#sort').addEventListener('change',renderStore);
 $('.search').addEventListener('submit',e=>{e.preventDefault();setMode(false);renderStore();$('#ofertas').scrollIntoView();});
-function addToCart(id){const p=get(id);if(!p||!p.active||!p.packQty)return;if(reserved(id)+1>p.stock){notify('Quantidade de fardos indisponível no estoque.');return;}const line=cart.find(l=>l.id===id);if(line)line.qty++;else cart.push({id,type:'pack',qty:1});saveCart();renderCart();notify('1 fardo de '+p.name+' adicionado ao carrinho.');}
+function addToCart(id){const p=get(id);if(!p||!p.active||!p.packQty)return;if(reserved(id)+1>p.stock){notify('Quantidade de fardos indisponível no estoque.');return;}const line=cart.find(l=>l.id===id);if(line)line.qty++;else cart.push({id,type:'pack',qty:1});if(!saveCart()){renderCart();return;}renderCart();notify('1 fardo de '+p.name+' adicionado ao carrinho.');}
 function renderCart(){
   reconcile();const list=$('#cart-items');list.replaceChildren();let total=0,count=0;if(!cart.length)list.append(el('p','','Seu carrinho está vazio. Escolha uma bebida para começar.'));
   cart.forEach(l=>{const p=get(l.id),price=p.price;total+=Math.round(price*100)*l.qty;count+=l.qty;
@@ -109,9 +140,10 @@ $('#product-form').addEventListener('submit',e=>{
 });
 $('#cancel-delete').addEventListener('click',()=>$('#delete-dialog').close());$('#confirm-delete').addEventListener('click',()=>{if(!commit(products.filter(p=>p.id!==pendingDelete))){notify('Não foi possível salvar a exclusão.');return;}refresh();$('#delete-dialog').close();notify('Produto excluído.');});
 $('#export-catalog').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),products},null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download='araguaia-catalogo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
-window.addEventListener('storage',e=>{if(e.key===KEY||e.key===CART_KEY)notify('Dados alterados em outra aba. Recarregue antes de continuar.');});
+window.addEventListener('storage',e=>{if(e.key===STATE_KEY||e.key===KEY||e.key===CART_KEY||e.key===null)notify('Dados alterados em outra aba. Recarregue antes de continuar.');});
 function checkout(){
   reconcile();renderCart();if(!cart.length)return;
+  $('#checkout-error').hidden=true;
   const summary=$('#checkout-summary');summary.replaceChildren();let cents=0;
   const lines=['Olá! Gostaria de conferir a disponibilidade e os valores deste pedido de fardos fechados:'];
   cart.forEach(l=>{const p=get(l.id),subtotal=Math.round(p.price*100)*l.qty;cents+=subtotal;
@@ -124,7 +156,7 @@ function checkout(){
   $('#cart-dialog').close();$('#checkout-dialog').showModal();
 }
 $('#review-order').addEventListener('click',checkout);
-$('#close-checkout').addEventListener('click',()=>$('#checkout-dialog').close());
+$('#close-checkout').addEventListener('click',()=>{if(!finishingOrder)$('#checkout-dialog').close();});
 $('#copy-pix').addEventListener('click',async()=>{
   try{await navigator.clipboard.writeText(PIX_KEY);notify('Chave Pix copiada. Confirme os dados com o atendimento.');}
   catch{const selection=window.getSelection(),range=document.createRange();range.selectNodeContents($('#pix-key'));selection.removeAllRanges();selection.addRange(range);notify('Chave selecionada. Use Copiar no seu dispositivo.');}
